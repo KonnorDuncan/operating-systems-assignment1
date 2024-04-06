@@ -8,23 +8,22 @@
 
 #define BUFFER_SIZE 2
 
-sem_t empty, full;
-pthread_mutex_t mutex;
-
-int table[BUFFER_SIZE];
+sem_t* empty, full;
+pthread_mutex_t* mutex;
+int* table;
 int id = 0;
 
 void* consumer(void* arg) {
   while (true) {
-    sem_wait(&full);
-    pthread_mutex_lock(&mutex);
+    sem_wait(full);
+    pthread_mutex_lock(mutex);
 
     // Consume item
     std::cout << "Consumed item: " << table[item_id - 1] << std::endl;
     table[id - 1] = 0;
 
-    pthread_mutex_unlock(&mutex);
-    sem_post(&empty);
+    pthread_mutex_unlock(mutex);
+    sem_post(empty);
 
     //delay
     sleep(2);
