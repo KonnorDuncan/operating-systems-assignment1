@@ -8,26 +8,26 @@
 
 #define BUFFER_SIZE 2
 
-sem_t empty, full;
-pthread_mutex_t mutex;
+sem_t* empty, full;
+pthread_mutex_t* mutex;
 
-int table[BUFFER_SIZE];
+int* table;
 int id = 0;
 
 
 void* producer (void* arg){
   while(true){
     //wait and lock
-    sem_wait(&empty);
-    pthread_mutex_lock(&mutex);
+    sem_wait(empty);
+    pthread_mutex_lock(mutex);
 
     //produce new item
     table[id] = rand() % 100;
     std::cout << "Producer made < " << table[id] << " >" << std::endl;
     id = (id + 1) % BUFFER_SIZE;
 
-    pthread_mutex_unlock(&mutex);
-    sem_post(&full);
+    pthread_mutex_unlock(mutex);
+    sem_post(full);
 
     // delay
     sleep(3);
@@ -53,7 +53,7 @@ int main(){
   //initialize semaphores and mutex
   sem_init(empty, 1, BUFFER_SIZE);
   sem_init(full, 1, 0);
-  pthread_mutex_init(&mutex, NULL);
+  pthread_mutex_init(mutex, NULL);
 
   //create thread
   pthread_t prod_thread;
