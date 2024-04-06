@@ -12,7 +12,7 @@ sem_t empty, full;
 pthread_mutex_t mutex;
 
 int table[BUFFER_SIZE];
-int item_id = 0;
+int id = 0;
 
 void* consumer(void* arg) {
   while (true) {
@@ -21,7 +21,7 @@ void* consumer(void* arg) {
 
     // Consume item
     std::cout << "Consumed item: " << table[item_id - 1] << std::endl;
-    table[item_id - 1] = 0;
+    table[id - 1] = 0;
 
     pthread_mutex_unlock(&mutex);
     sem_post(&empty);
@@ -33,23 +33,31 @@ void* consumer(void* arg) {
 }
 
 int main() {
+  int shm_fd;
+
+  //open shared memory
+  shm_fd = shm_open("/hw1_mem", O_RDWR, 666);
+  //map the shared memory segment to process address space
+  empty = (sem_t*)mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+  full = (sem_t*)mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, sizeof(sem_t));
+  mutex = (pthread_mutex_t*)mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, sizeof(sem_t) * 2);
+  table = (int*)mmap(NULL, sizeof(int) * TABLE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, sizeof(sem_t) * 2 + sizeof(pthread_mutex_t));
+
+  
+
+  //create consumer thread
   pthread_t cons_thread;
-
-  // Initialize semaphores and mutex
-  sem_init(&empty, 0, BUFFER_SIZE);
-  sem_init(&full, 0, 0);
-  pthread_mutex_init(&mutex, NULL);
-
-  // Create consumer thread
   pthread_create(&cons_thread, NULL, consumer, NULL);
 
-  // Join consumer thread
+  //join consumer thread
   pthread_join(cons_thread, NULL);
 
-  // Destroy semaphores and mutex
-  sem_destroy(&empty);
-  sem_destroy(&full);
-  pthread_mutex_destroy(&mutex);
+  //unmap shared memory
+  munmap(empty, sizeof(sem_t));
+  munmap(full, sizeof(sem_t));
+  munmap(mutex, sizeof(pthread_mutex_t));
+  munmap(table, sizeof(int) * TABLE_SIZE);
+  close(shm_fd);
 
-    return 0;
+  return 0;
 }
